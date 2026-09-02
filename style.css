@@ -19,6 +19,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -79,6 +83,77 @@ h1, h2, h3, p, ul, ol {
   font-size: 11px;
   color: var(--text-sub);
   margin: 6px 0 22px;
+  cursor: default;
+}
+
+/* ---- アクセス表示・管理者モードの隠し入口 ---- */
+.access-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-sub);
+  margin: 6px 0 8px;
+}
+.access-row .watermark {
+  margin: 0;
+}
+.admin-logout-btn {
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  font-family: var(--font-main);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+.access-url-label {
+  font-size: 10px;
+  color: var(--text-sub);
+}
+.access-url-field {
+  flex: 1 1 220px;
+  min-width: 120px;
+  max-width: 320px;
+  background: var(--card-bg);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-sub);
+  font-family: var(--font-main);
+  font-size: 10px;
+  padding: 4px 8px;
+}
+.hidden-admin-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.admin-word-input {
+  background: var(--card-bg);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-main);
+  font-family: var(--font-main);
+  font-size: 11px;
+  padding: 6px 10px;
+}
+.admin-auth-btn {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-main);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.admin-error {
+  font-size: 10px;
+  color: var(--red);
 }
 
 .menu-grid {

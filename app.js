@@ -5,6 +5,35 @@
   var QUESTION_TIME_LIMIT = 15; // 1問あたりの目安秒数
   var CONFIDENCE_PENALTY_PER_SEC = 5;
   var HISTORY_KEY = 'mbti64_diagnosis_history';
+  var ADMIN_KEY = 'mbti64_admin_mode';
+
+  // ============================================================
+  // アクセス制限（配布リンク対策）
+  //
+  // ・EXPECTED_REFERRER_PREFIX に配布先(noteの記事URLなど)を設定すると、
+  //   そのページから遷移してきた場合(document.referrer が一致する場合)
+  //   のみアプリが使えるようになる。直接URLを開いた・別サイトから来た
+  //   場合は空欄またはURL不一致になり、ブロック画面が表示される。
+  // ・空欄のままなら制限なし(誰でも利用可)。配布直前に設定すること。
+  // ・管理者モードでは、このチェックを無視してどこからでも起動できる。
+  //   画面左上のウォーターマーク文字をクリックすると、合言葉の入力欄が
+  //   現れる(見た目のヒントは一切出さない)。
+  // ============================================================
+  var EXPECTED_REFERRER_PREFIX = ''; // 例: 'https://note.com/xxxxx/n/xxxxx'
+  var ADMIN_BYPASS_WORD = 'ADMINUSER';
+
+  function isAdminMode() {
+    try { return localStorage.getItem(ADMIN_KEY) === 'true'; } catch (e) { return false; }
+  }
+  function setAdminMode(v) {
+    try { localStorage.setItem(ADMIN_KEY, v ? 'true' : 'false'); } catch (e) { /* noop */ }
+  }
+  function checkAccess() {
+    if (isAdminMode()) return true;
+    if (!EXPECTED_REFERRER_PREFIX) return true;
+    var referrer = document.referrer || '';
+    return referrer.indexOf(EXPECTED_REFERRER_PREFIX) === 0;
+  }
 
   var root = document.getElementById('app');
 
@@ -192,6 +221,77 @@
     });
   }
 
+  // ---------------- アクセス表示・管理者モードの隠し入口（共通パーツ） ----------------
+  function renderAccessIndicator() {
+    var referrer = document.referrer || '';
+    var watermarkText = isAdminMode() ? '👑 管理者モード' : '🌐 Web版';
+    var logoutHtml = isAdminMode()
+      ? ' <button class="admin-logout-btn" id="admin-logout-btn" type="button">（解除）</button>' : '';
+    return (
+      '<div class="access-row">' +
+      '<span class="watermark" id="watermark-label">' + watermarkText + '</span>' + logoutHtml +
+      '<span class="access-url-label">直前のURL</span>' +
+      '<input type="text" class="access-url-field" id="referrer-field" value="' +
+      escapeHtml(referrer) + '" readonly placeholder="（直接アクセス）">' +
+      '</div>' +
+      '<div class="hidden-admin-box" id="hidden-admin-box" hidden>' +
+      '<input type="password" class="admin-word-input" id="admin-word-input" placeholder="合言葉">' +
+      '<button class="admin-auth-btn" id="admin-auth-btn" type="button">認証する</button>' +
+      '<span class="admin-error" id="admin-error"></span>' +
+      '</div>'
+    );
+  }
+
+  function bindAccessIndicator() {
+    var watermark = document.getElementById('watermark-label');
+    var hiddenBox = document.getElementById('hidden-admin-box');
+    if (watermark && hiddenBox) {
+      watermark.addEventListener('click', function () {
+        if (!hiddenBox.hidden) return;
+        hiddenBox.hidden = false;
+        var input = document.getElementById('admin-word-input');
+        if (input) input.focus();
+      });
+    }
+    var authBtn = document.getElementById('admin-auth-btn');
+    var wordInput = document.getElementById('admin-word-input');
+    if (authBtn && wordInput) {
+      var tryAuth = function () {
+        var errorEl = document.getElementById('admin-error');
+        if (wordInput.value.trim() === ADMIN_BYPASS_WORD) {
+          setAdminMode(true);
+          navigateTo('menu');
+        } else {
+          if (errorEl) errorEl.textContent = '合言葉が違います。';
+          wordInput.value = '';
+        }
+      };
+      authBtn.addEventListener('click', tryAuth);
+      wordInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryAuth(); });
+    }
+    var logoutBtn = document.getElementById('admin-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function () {
+        setAdminMode(false);
+        navigateTo(checkAccess() ? 'menu' : 'blocked');
+      });
+    }
+  }
+
+  // ---------------- ブロック画面（指定リンク以外からのアクセス） ----------------
+  function renderBlocked() {
+    root.innerHTML =
+      headerStrip() +
+      '<div class="screen">' +
+      '<h2 class="section-title" style="font-size:20px;color:#f87171">🔒 このページは現在ご利用いただけません</h2>' +
+      '<p class="sub-text">指定されたリンクを経由してアクセスした場合のみご利用いただけます。<br>' +
+      'URLを直接開いた場合や、別のページから来られた場合はご利用いただけません。<br>' +
+      '正規のリンクからもう一度お試しください。</p>' +
+      renderAccessIndicator() +
+      '</div>';
+    bindAccessIndicator();
+  }
+
   // ---------------- ① メインメニュー ----------------
   function renderMenu() {
     var menuItems = [
@@ -208,8 +308,8 @@
       '<div class="screen">' +
       '<div class="title-row"><div class="app-title">🧭 64タイプ性格診断</div>' +
       '<div class="app-version">' + APP_VERSION + '</div></div>' +
-      '<div class="watermark">🌐 Web版</div>' +
-      '<div class="menu-grid">' +
+      renderAccessIndicator() +
+      '<div class="menu-grid" style="margin-top:16px">' +
       menuItems.map(function (item, i) {
         return '<button class="menu-btn" data-menu-idx="' + i + '" style="color:' + item[1] + '">' +
           escapeHtml(item[0]) + '</button>';
@@ -219,6 +319,7 @@
     root.querySelectorAll('[data-menu-idx]').forEach(function (btn) {
       btn.addEventListener('click', function () { menuItems[Number(btn.dataset.menuIdx)][2](); });
     });
+    bindAccessIndicator();
   }
 
   // ---------------- 名前入力 ----------------
@@ -697,6 +798,7 @@
   // ---------------- ルーター ----------------
   function render() {
     switch (state.screen) {
+      case 'blocked': renderBlocked(); break;
       case 'menu': renderMenu(); break;
       case 'nameEntry': renderNameEntry(); break;
       case 'question': renderQuestion(); break;
@@ -710,5 +812,6 @@
     }
   }
 
+  state.screen = checkAccess() ? 'menu' : 'blocked';
   render();
 })();
