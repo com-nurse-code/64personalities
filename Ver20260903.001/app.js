@@ -19,7 +19,7 @@
   //   画面左上のウォーターマーク文字をクリックすると、合言葉の入力欄が
   //   現れる(見た目のヒントは一切出さない)。
   // ============================================================
-  var EXPECTED_REFERRER_PREFIX = 'https://www.yahoo.co.jp/'; // 例: 'https://note.com/xxxxx/n/xxxxx'
+    var EXPECTED_REFERRER_PREFIX = 'https://com-nurse-code.github.io/64personalities/test-link.html';
   var ADMIN_BYPASS_WORD = 'ADMINUSER';
 
   function isAdminMode() {
